@@ -1,0 +1,30 @@
+{% extends "archive/base.html" %}
+
+{% block content %}
+
+<p>
+    <h2>Title:</h2>
+    {{ url.title }}
+</p>
+<p>
+    <h2>Status:</h2>
+    {{ url.status }}
+</p>
+<p>
+    <h2>Initial:</h2>
+    {{ url.init_url }}
+</p>
+<p>
+    <h2>Final:</h2>
+    {{ url.final_url }}
+</p>
+<p>
+    <h2>Pic</h2>
+    <a href="{{ url.snapshot_url }}" target="_new">{{ url.snapshot_url }}</a>
+</p>
+<p align="right">
+    collected on {{ url.collected_date }}
+</p>
+
+<p><a href="{% url 'url_delete' pk=url.pk %}">DELETE</a></p>
+{% endblock %}

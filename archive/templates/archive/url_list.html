@@ -1,0 +1,29 @@
+{% extends "archive/base.html" %}
+
+{% block content %}
+
+<table class="url_table">
+    <tr>
+        <th class="url_table_header"></th>
+        <th class="url_table_header">Title</th>
+        <th class="url_table_header">Status</th>
+        <th class="url_table_header">Initial</th>
+        <th class="url_table_header">Final</th>
+        <th class="url_table_header">Accessed</th>
+        <th class="url_table_header">Snapshot</th>
+    </tr>
+    {% for url in urls %}
+
+    <tr class="url_table_row">
+        <td><a href="{% url 'url_detail' pk=url.pk %}">SELECT</a></td>
+        <td>{{ url.title }}</td>
+        <td>{{ url.status }}</td>
+        <td>{{ url.init_url }}</td>
+        <td>{{ url.final_url }}</td>
+        <td>{{ url.collected_date }}</td>
+        <td><a href = "{{ url.snapshot_url }}" target="_new">{{ url.snapshot_url }}</a></td>
+
+    </tr>
+    {% endfor %}
+</table>
+{% endblock content %}

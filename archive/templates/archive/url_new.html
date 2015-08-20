@@ -1,0 +1,9 @@
+{% extends "archive/base.html" %}
+
+{% block content %}
+    <h1>Harvest the 'Net</h1>
+    <form method="POST" class="post-form">{% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit" class="save btn btn-default">Harvest</button>
+    </form>
+{% endblock %}
