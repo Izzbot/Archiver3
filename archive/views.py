@@ -10,13 +10,15 @@ from .serializers import URLSerializer
 
 from bs4 import BeautifulSoup
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.models import User
 from django.conf import settings
 from selenium import webdriver
 from boto.s3.connection import S3Connection
 from boto.s3.key import Key
 from ratelimit.decorators import ratelimit
+from ratelimit.mixins import RatelimitMixin
 
-from rest_framework import status
+from rest_framework import status, permissions, generics, mixins
 from rest_framework.decorators import api_view
 from rest_framework.authentication import BasicAuthentication
 from rest_framework.permissions import IsAuthenticated
@@ -120,25 +122,27 @@ def url_delete(request, pk):
         url.delete()
         return redirect('archive.views.url_list')
 
-## Start of API Views
+## Start of API Classes
 ## It gets crazy here!
 
-@ratelimit(key='ip', rate='10/m', block=True)
-@api_view(['GET', 'DELETE'])
-def api_url_detail(request, pk, format=None):
-    try:
-        zeURL = URL.objects.get(pk=pk)
-    except URL.DoesNotExist:
-        return Response(status=status.HTTP_404_NOT_FOUND)
 
-    if request.method == 'GET':
-        serializer = URLSerializer(zeURL)
-        return Response(serializer.data)
-    elif request.method == 'DELETE':
+class api_url_detail(RatelimitMixin, generics.RetrieveAPIView):
 
+    queryset = URL.objects.all()
+    serializer_class = URLSerializer
+    permission_classes = (permissions.IsAuthenticated,)
+    ratelimit_key = 'ip'
+    ratelimit_rate = '10/m'
+    ratelimit_block = True
+    ratelimit_method = 'GET', 'DELETE'
+
+    def delete(self, request, pk):
         conn = S3Connection(creds.AWS_ACCESS_KEY_ID, creds.AWS_SECRET_ACCESS_KEY)
         zeBucket = conn.get_bucket('izzy-lab3')
         zeKey = Key(zeBucket)
+
+        queryset = URL.objects.all()
+        zeURL = get_object_or_404(queryset, pk=pk)
         zeS3 = zeURL.snapshot_url.split("/")
         nameFile = zeS3.pop()
         zeKey.key = 'screenshots/' + nameFile
@@ -147,14 +151,17 @@ def api_url_detail(request, pk, format=None):
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
-@ratelimit(key='ip', rate='10/m', block=True)
-@api_view(['GET', 'POST'])
-def api_url_list(request, format=None):
-    if request.method == 'GET':
-        urls = URL.objects.all()
-        serializer = URLSerializer(urls, many=True)
-        return Response(serializer.data)
-    elif request.method == 'POST':
+class api_url_list(RatelimitMixin, generics.ListAPIView):
+
+    queryset = URL.objects.all()
+    serializer_class = URLSerializer
+    permission_classes = (permissions.IsAuthenticated,)
+    ratelimit_key = 'ip'
+    ratelimit_rate = '10/m'
+    ratelimit_block = True
+    ratelimit_method = 'GET', 'POST'
+
+    def post(self, request):
         data = request.data
 
         # assign data
@@ -208,16 +215,22 @@ def api_url_list(request, format=None):
 
         if serializer.is_valid():
             serializer.save()
-
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-@ratelimit(key='ip', rate='10/m', block=True)
-@api_view(['GET'])
-def api_url_recapture(request, pk, format=None):
-    if request.method == 'GET':
 
+class api_url_recapture(generics.GenericAPIView, RatelimitMixin):
+
+    queryset = URL.objects.all()
+    serializer_class = URLSerializer
+    permission_classes = (permissions.IsAuthenticated,)
+    ratelimit_key = 'ip'
+    ratelimit_rate = '10/m'
+    ratelimit_block = True
+    ratelimit_method = 'GET'
+
+    def get(self, request, pk):
         try:
             zeURL = URL.objects.get(pk=pk)
         except URL.DoesNotExist:
@@ -256,7 +269,6 @@ def api_url_recapture(request, pk, format=None):
         except:
             return Response(str(zeURL.snapshot_url), status=status.HTTP_400_BAD_REQUEST)
 
-        serializer = URLSerializer(zeURL)
-        return Response(serializer.data)
-    return Response(status=status.HTTP_400_BAD_REQUEST)
+        zeURL.save()
+        return Response(status=status.HTTP_201_CREATED)
 

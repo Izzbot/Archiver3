@@ -14,9 +14,9 @@ urlpatterns = [
     url(r'^accounts/logout/$', auth_views.logout, {'next_page':'/lab3'}),
 
     # api urls
-    url(r'^api/$', views.api_url_list, name='api_url_list'),
-    url(r'^api/(?P<pk>[0-9]+)/$', views.api_url_detail, name='api_url_detail'),
-    url(r'^api/(?P<pk>[0-9]+)/recapture/$', views.api_url_recapture, name='api_url_recapture'),
+    url(r'^api/$', views.api_url_list.as_view(), name='api_url_list'),
+    url(r'^api/(?P<pk>[0-9]+)/$', views.api_url_detail.as_view(), name='api_url_detail'),
+    url(r'^api/(?P<pk>[0-9]+)/recapture/$', views.api_url_recapture.as_view(), name='api_url_recapture'),
 ]
 
 urlpatterns = format_suffix_patterns(urlpatterns)

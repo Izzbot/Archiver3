@@ -1,7 +1,9 @@
 from django.forms import widgets
 from rest_framework import serializers
 from .models import URL
+from django.contrib.auth.models import User
 
+#URL serializer
 class URLSerializer(serializers.ModelSerializer):
     class Meta:
         model = URL
@@ -9,3 +11,4 @@ class URLSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         return URL.objects.create(**validated_data)
+
