@@ -25,7 +25,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-
+# List the URLs
 @ratelimit(key='ip', rate='10/m', block=True)
 @login_required(login_url='accounts/login')
 def url_list(request):
@@ -35,6 +35,7 @@ def url_list(request):
         urls = URL.objects.order_by('collected_date')
         return render(request, 'archive/url_list.html', {'urls': urls})
 
+# Fetch details on a URL
 @ratelimit(key='ip', rate='10/m', block=True)
 @login_required(login_url='../../accounts/login')
 def url_detail(request, pk):
@@ -44,6 +45,7 @@ def url_detail(request, pk):
         url = get_object_or_404(URL, pk=pk)
         return render(request, 'archive/url_detail.html', {'url': url})
 
+# Make a new URL
 @ratelimit(key='ip', rate='10/m', block=True)
 @login_required(login_url='../../accounts/login')
 def url_new(request):
@@ -112,20 +114,30 @@ def url_new(request):
             form = URLForm()
         return render(request, 'archive/url_new.html', {'form': form})
 
+# Delete a URL
 @ratelimit(key='ip', rate='10/m', block=True)
 @login_required(login_url='../../../accounts/login')
 def url_delete(request, pk):
     if not request.user.is_authenticated():
         return redirect('%s?next=%s' % (settings.LOGIN_URL, request.path))
     else:
-        url = get_object_or_404(URL, pk=pk)
-        url.delete()
+        zeURL = get_object_or_404(URL, pk=pk)
+
+        # delete the screenshot
+        conn = S3Connection(creds.AWS_ACCESS_KEY_ID, creds.AWS_SECRET_ACCESS_KEY)
+        zeBucket = conn.get_bucket('izzy-lab3')
+        zeKey = Key(zeBucket)
+        zeS3 = zeURL.snapshot_url.split("/")
+        nameFile = zeS3.pop()
+        zeKey.key = 'screenshots/' + nameFile
+        zeBucket.delete_key(zeKey)
+
+        # Burn it with fire
+        zeURL.delete()
         return redirect('archive.views.url_list')
 
 ## Start of API Classes
 ## It gets crazy here!
-
-
 class api_url_detail(RatelimitMixin, generics.RetrieveAPIView):
 
     queryset = URL.objects.all()
@@ -267,7 +279,7 @@ class api_url_recapture(generics.GenericAPIView, RatelimitMixin):
             driver.quit()
             zeURL.snapshot_url = 'https://s3.amazonaws.com/izzy-lab3/screenshots/' + nameFile
         except:
-            return Response(str(zeURL.snapshot_url), status=status.HTTP_400_BAD_REQUEST)
+            return Response(status=status.HTTP_400_BAD_REQUEST)
 
         zeURL.save()
         return Response(status=status.HTTP_201_CREATED)
